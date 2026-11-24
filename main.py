@@ -20,19 +20,29 @@ ENTRY = (
 )
 
 MAX_CHARS = 200
+MAX_BYTES = 400
 
 
 def validate(text: str) -> None:
     """Fail loudly if the entry breaks the RULES.txt gate."""
     if not text or not text.strip():
         raise SystemExit("entry must not be empty or only whitespace")
-    if "\n" in text or "\r" in text:
-        raise SystemExit("entry must be exactly one line")
+    # Reject any control character (covers \n, \r, tab, etc.): the entry
+    # must be exactly one printable line.
+    bad = [c for c in text if ord(c) < 0x20 or ord(c) == 0x7F]
+    if bad:
+        raise SystemExit(
+            f"entry contains control character(s): {[hex(ord(c)) for c in bad]}"
+        )
     if len(text) > MAX_CHARS:
         raise SystemExit(
             f"entry is {len(text)} chars, over the {MAX_CHARS} limit"
         )
-    text.encode("utf-8")  # must be valid UTF-8
+    encoded = text.encode("utf-8")  # must be valid UTF-8
+    if len(encoded) > MAX_BYTES:
+        raise SystemExit(
+            f"entry is {len(encoded)} UTF-8 bytes, over the {MAX_BYTES} limit"
+        )
 
 
 def main() -> None:
